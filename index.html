@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zyklustracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#d94a63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Zyklus">
+<style>
+  :root {
+    --bg: #faf7f6; --card: #ffffff; --text: #2b2427; --muted: #7a6f73; --border: #e8dfe1;
+    --period: #d94a63; --period-text: #fff;
+    --pred: #f6c9d1; --fertile: #c9ecd5; --ovu: #5bb381; --ovu-text: #fff;
+    --today: #2b2427;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1719; --card: #272022; --text: #f1eaec; --muted: #a39599; --border: #3a3033;
+      --period: #e0566e; --pred: #6b3440; --fertile: #2d5a43; --ovu: #3f9c6b;
+      --today: #f1eaec;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.3rem; margin: 0 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .nav strong { font-size: 1.1rem; }
+  button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dow { text-align: center; font-size: .75rem; color: var(--muted); padding: 4px 0; }
+  .day { aspect-ratio: 1; border-radius: 10px; border: 2px solid transparent; background: transparent;
+    padding: 0; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+  .day.empty { visibility: hidden; }
+  .day.fertile { background: var(--fertile); }
+  .day.pred { background: var(--pred); }
+  .day.ovu { background: var(--ovu); color: var(--ovu-text); font-weight: 600; }
+  .day.period { background: var(--period); color: var(--period-text); font-weight: 600; }
+  .day.today { border-color: var(--today); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; vertical-align: -1px; margin-right: 4px; }
+  dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; text-align: right; font-weight: 600; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hint { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Zyklustracker</h1>
+
+  <div class="card">
+    <div class="nav">
+      <button id="prev" aria-label="Vorheriger Monat">‹</button>
+      <strong id="title"></strong>
+      <button id="next" aria-label="Nächster Monat">›</button>
+    </div>
+    <div class="grid" id="dows"></div>
+    <div class="grid" id="days"></div>
+    <div class="legend">
+      <span><i style="background:var(--period)"></i>Periode</span>
+      <span><i style="background:var(--pred)"></i>erwartete Periode</span>
+      <span><i style="background:var(--fertile)"></i>fruchtbares Fenster</span>
+      <span><i style="background:var(--ovu)"></i>Eisprung (ca.)</span>
+    </div>
+    <p class="hint">Tag antippen: als Periodentag markieren bzw. wieder entfernen.</p>
+  </div>
+
+  <div class="card">
+    <dl id="info"></dl>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="export">Backup speichern</button>
+      <button id="import">Backup laden</button>
+      <button id="today">Heute</button>
+    </div>
+    <input type="file" id="file" accept="application/json" hidden>
+    <p class="hint">Daten liegen nur in diesem Browser (localStorage). Mach gelegentlich ein Backup.
+      Reine Kalenderschätzung – nicht zur Verhütung und kein medizinischer Rat.</p>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "zyklustracker.v1";
+  var DEFAULT_CYCLE = 28, DEFAULT_PERIOD = 5, LUTEAL = 14;
+  var MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  var DOWS = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+
+  // ---- Datum-Helfer (lokale Zeit, ISO-Strings "YYYY-MM-DD") ----
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parse(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  function diffDays(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
+  function fmt(s) { var d = parse(s); return d.getDate() + "." + (d.getMonth() + 1) + "."; }
+
+  // ---- Daten ----
+  var days = new Set();
+  try {
+    var raw = JSON.parse(localStorage.getItem(KEY) || "{}");
+    (raw.periodDays || []).forEach(function (d) { if (/^\d{4}-\d{2}-\d{2}$/.test(d)) days.add(d); });
+  } catch (e) {}
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ periodDays: Array.from(days).sort() })); } catch (e) {}
+  }
+
+  // ---- Vorhersage ----
+  function blocks() {
+    var sorted = Array.from(days).sort(), res = [];
+    sorted.forEach(function (d) {
+      var last = res[res.length - 1];
+      if (last && diffDays(last.end, d) === 1) { last.end = d; last.len++; }
+      else res.push({ start: d, end: d, len: 1 });
+    });
+    return res;
+  }
+
+  function analyze() {
+    var bl = blocks();
+    var lens = [];
+    for (var i = 1; i < bl.length; i++) {
+      var l = diffDays(bl[i - 1].start, bl[i].start);
+      if (l >= 20 && l <= 45) lens.push(l);   // Ausreißer ignorieren
+    }
+    lens = lens.slice(-6);
+    var n = lens.length, cycle = DEFAULT_CYCLE, sd = 0, mean = null;
+    if (n) {
+      var ws = 0, sum = 0;
+      lens.forEach(function (l, i) { ws += i + 1; sum += l * (i + 1); });  // neuere zählen mehr
+      mean = sum / ws;
+      var w = n / (n + 2);                                                   // eigener Wert gewinnt mit der Zeit
+      cycle = Math.round(w * mean + (1 - w) * DEFAULT_CYCLE);
+      if (n >= 3) {
+        var m = lens.reduce(function (a, b) { return a + b; }, 0) / n;
+        sd = Math.sqrt(lens.reduce(function (a, b) { return a + (b - m) * (b - m); }, 0) / n);
+      }
+    }
+    var pl = bl.slice(-6).map(function (b) { return b.len; });
+    var period = pl.length ? Math.round(pl.reduce(function (a, b) { return a + b; }, 0) / pl.length) : DEFAULT_PERIOD;
+    return { bl: bl, n: n, cycle: cycle, period: period, sd: sd, mean: mean };
+  }
+
+  function buildMarks(a) {
+    var marks = {}; // iso -> "fertile" | "pred" | "ovu"
+    function set(d, t) {
+      var rank = { fertile: 1, pred: 2, ovu: 3 };
+      if (!marks[d] || rank[t] > rank[marks[d]]) marks[d] = t;
+    }
+    function cycleMarks(nextStart, withPred) {
+      var ov = addDays(nextStart, -LUTEAL);
+      for (var k = -5; k <= 1; k++) set(addDays(ov, k), "fertile");
+      set(ov, "ovu");
+      if (withPred) for (var j = 0; j < a.period; j++) set(addDays(nextStart, j), "pred");
+      return ov;
+    }
+    var bl = a.bl, next = null;
+    if (!bl.length) return { marks: marks, next: null };
+    // Rückblickend: Eisprung vor jeder tatsächlich eingetragenen Periode
+    for (var i = 1; i < bl.length; i++) {
+      var l = diffDays(bl[i - 1].start, bl[i].start);
+      if (l >= 20 && l <= 45) cycleMarks(bl[i].start, false);
+    }
+    // Vorwärts: bis zu 3 Zyklen ab der letzten Periode
+    var today = iso(new Date()), shown = 0, last = bl[bl.length - 1].start;
+    for (var c = 1; c <= 24 && shown < 3; c++) {
+      var ns = addDays(last, c * a.cycle);
+      if (addDays(ns, a.period) <= today) continue;   // schon vorbei
+      var ov = cycleMarks(ns, true);
+      if (!next) next = { start: ns, ov: ov };
+      shown++;
+    }
+    return { marks: marks, next: next };
+  }
+
+  // ---- Darstellung ----
+  var view = new Date(); view.setDate(1);
+  var elDays = document.getElementById("days");
+  document.getElementById("dows").innerHTML = DOWS.map(function (d) { return '<div class="dow">' + d + "</div>"; }).join("");
+
+  function render() {
+    var a = analyze(), m = buildMarks(a), today = iso(new Date());
+    document.getElementById("title").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
+    var first = new Date(view.getFullYear(), view.getMonth(), 1);
+    var offset = (first.getDay() + 6) % 7;
+    var count = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+    var html = "";
+    for (var i = 0; i < offset; i++) html += '<div class="day empty"></div>';
+    for (var d = 1; d <= count; d++) {
+      var s = view.getFullYear() + "-" + pad(view.getMonth() + 1) + "-" + pad(d);
+      var cls = "day";
+      if (days.has(s)) cls += " period"; else if (m.marks[s]) cls += " " + m.marks[s];
+      if (s === today) cls += " today";
+      html += '<button class="' + cls + '" data-d="' + s + '">' + d + "</button>";
+    }
+    elDays.innerHTML = html;
+
+    var info = [];
+    var basis = a.n === 0 ? "Standardwert (28 Tage)" : a.n + " Zyklus/Zyklen + Standard";
+    info.push(["Erwartete Zykluslänge", a.cycle + " Tage"]);
+    info.push(["Berechnet aus", basis]);
+    if (a.mean) info.push(["Dein Durchschnitt", a.mean.toFixed(1).replace(".", ",") + " Tage"]);
+    info.push(["Periodendauer", a.period + " Tage"]);
+    if (!m.next) info.push(["Vorhersage", "Trag deine letzte Periode ein"]);
+    document.getElementById("info").innerHTML = info.map(function (r) {
+      return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
+    }).join("");
+  }
+
+  elDays.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-d]");
+    if (!b) return;
+    var d = b.getAttribute("data-d");
+    if (days.has(d)) days.delete(d); else days.add(d);
+    save(); render();
+  });
+  document.getElementById("prev").onclick = function () { view.setMonth(view.getMonth() - 1); render(); };
+  document.getElementById("next").onclick = function () { view.setMonth(view.getMonth() + 1); render(); };
+  document.getElementById("today").onclick = function () { view = new Date(); view.setDate(1); render(); };
+
+  // ---- Backup ----
+  document.getElementById("export").onclick = function () {
+    var blob = new Blob([JSON.stringify({ periodDays: Array.from(days).sort() }, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "zyklustracker-backup-" + iso(new Date()) + ".json";
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+  var file = document.getElementById("file");
+  document.getElementById("import").onclick = function () { file.click(); };
+  file.onchange = function () {
+    var f = file.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var data = JSON.parse(r.result), list = (data.periodDays || []).filter(function (d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); });
+        if (!confirm(list.length + " Tage laden? Die aktuellen Einträge werden ersetzt.")) return;
+        days = new Set(list); save(); render();
+      } catch (e) { alert("Datei konnte nicht gelesen werden."); }
+    };
+    r.readAsText(f); file.value = "";
+  };
+
+  render();
+
+  // Offline-Fähigkeit (nur über https bzw. localhost verfügbar)
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+  // Speicher vor automatischem Löschen durch den Browser schützen
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+})();
+</script>
+</body>
+</html>

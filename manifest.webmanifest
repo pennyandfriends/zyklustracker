@@ -1,0 +1,16 @@
+{
+  "name": "Zyklustracker",
+  "short_name": "Zyklus",
+  "description": "Einfacher Zyklus- und Eisprungkalender",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf7f6",
+  "theme_color": "#d94a63",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
