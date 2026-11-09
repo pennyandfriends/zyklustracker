@@ -7,57 +7,76 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#d94a63">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Zyklus">
 <style>
   :root {
-    --bg: #faf7f6; --card: #ffffff; --text: #2b2427; --muted: #7a6f73; --border: #e8dfe1;
-    --period: #d94a63; --period-text: #fff;
-    --pred: #f6c9d1; --fertile: #c9ecd5; --ovu: #5bb381; --ovu-text: #fff;
-    --today: #2b2427;
+    --bg: #ffffff; --card: transparent; --text: #1a1a1a; --muted: #8c8c8c; --border: #ebebeb;
+    --period: #c97b72; --period-text: #fff;
+    --pred: #f5e6e3; --fertile: #e7efe8; --ovu: #86ad92; --ovu-text: #fff;
+    --today: #1a1a1a;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c1719; --card: #272022; --text: #f1eaec; --muted: #a39599; --border: #3a3033;
-      --period: #e0566e; --pred: #6b3440; --fertile: #2d5a43; --ovu: #3f9c6b;
-      --today: #f1eaec;
+      --bg: #141414; --card: transparent; --text: #eeeeee; --muted: #8a8a8a; --border: #2a2a2a;
+      --period: #c97b72; --pred: #3a2a28; --fertile: #243228; --ovu: #5f8a6c;
+      --today: #eeeeee;
     }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 520px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 1.3rem; margin: 0 0 12px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
-  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .nav strong { font-size: 1.1rem; }
-  button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  main { max-width: 460px; margin: 0 auto; padding: 28px 20px 40px; }
+  .brand { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 0 24px; }
+  .brand img { width: 58px; height: 58px; display: block; mix-blend-mode: multiply; }
+  @media (prefers-color-scheme: dark) { .brand img { filter: invert(1); mix-blend-mode: screen; } }
+  h1 { font-size: .8rem; font-weight: 400; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--muted); margin: 0; text-align: center; }
+  .card { background: var(--card); padding: 0; margin-bottom: 28px; }
+  .card + .card { border-top: 1px solid var(--border); padding-top: 24px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .nav strong { font-size: 1.25rem; font-weight: 300; letter-spacing: .02em; }
+  button { font: inherit; color: var(--text); background: transparent; border: 1px solid var(--border);
+    border-radius: 999px; padding: 6px 16px; cursor: pointer; font-size: .85rem; font-weight: 300; }
   button:hover { border-color: var(--muted); }
-  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .dow { text-align: center; font-size: .75rem; color: var(--muted); padding: 4px 0; }
-  .day { aspect-ratio: 1; border-radius: 10px; border: 2px solid transparent; background: transparent;
-    padding: 0; display: flex; align-items: center; justify-content: center; font-size: .95rem; }
+  .nav button { width: 38px; height: 38px; padding: 0; font-size: 1.1rem; line-height: 1; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px 2px; }
+  .dow { text-align: center; font-size: .7rem; letter-spacing: .08em; color: var(--muted); padding: 4px 0 8px; }
+  .day { aspect-ratio: 1; border-radius: 50%; border: 1px solid transparent; background: transparent;
+    padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 400; }
   .day.empty { visibility: hidden; }
   .day.fertile { background: var(--fertile); }
   .day.pred { background: var(--pred); }
   .day.ovu { background: var(--ovu); color: var(--ovu-text); font-weight: 600; }
   .day.period { background: var(--period); color: var(--period-text); font-weight: 600; }
   .day.today { border-color: var(--today); }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; color: var(--muted); margin-top: 10px; }
-  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; vertical-align: -1px; margin-right: 4px; }
-  dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
-  dt { color: var(--muted); }
-  dd { margin: 0; text-align: right; font-weight: 600; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .hint { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; font-size: .75rem; font-weight: 300; color: var(--muted);
+    margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+  #info { margin-top: 22px; }
+  .seed + #info { margin-top: 0; padding-top: 22px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: 0; margin-right: 6px; }
+  .figs { display: flex; justify-content: center; gap: 12px 40px; flex-wrap: wrap; text-align: center; }
+  .fig { display: flex; flex-direction: column-reverse; gap: 4px; }
+  .fig .num { font-size: 1.15rem; font-weight: 300; line-height: 1.25; }
+  .fig .num small { font-size: .7rem; color: var(--muted); }
+  .fig .lbl { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .basis { margin: 14px 0 0; text-align: center; font-size: .75rem; font-weight: 300; color: var(--muted); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .seed { margin-top: 22px; padding: 22px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    display: flex; justify-content: center; text-align: center; }
+  .seed[hidden] { display: none; }
+  .seed .num { text-wrap: balance; }
+  .hint { text-align: center; font-size: .75rem; font-weight: 300; line-height: 1.5; color: var(--muted); margin: 14px 0 0; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Zyklustracker</h1>
+  <header class="brand">
+    <img src="icon-192.png" alt="" width="58" height="58">
+    <h1>Zyklustracker</h1>
+  </header>
 
   <div class="card">
     <div class="nav">
@@ -67,6 +86,8 @@
     </div>
     <div class="grid" id="dows"></div>
     <div class="grid" id="days"></div>
+    <div class="seed" id="seed" hidden><div class="fig"><span class="num" id="seedText"></span><span class="lbl">Heute</span></div></div>
+    <div id="info"></div>
     <div class="legend">
       <span><i style="background:var(--period)"></i>Periode</span>
       <span><i style="background:var(--pred)"></i>erwartete Periode</span>
@@ -74,10 +95,6 @@
       <span><i style="background:var(--ovu)"></i>Eisprung (ca.)</span>
     </div>
     <p class="hint">Tag antippen: als Periodentag markieren bzw. wieder entfernen.</p>
-  </div>
-
-  <div class="card">
-    <dl id="info"></dl>
   </div>
 
   <div class="card">
@@ -193,6 +210,20 @@
 
   function render() {
     var a = analyze(), m = buildMarks(a), today = iso(new Date());
+
+    // Seed Cycling: Phase richtet sich nach dem geschätzten Eisprung des aktuellen Zyklus.
+    // Bis einschließlich Eisprungtag: Leinsamen & Kürbiskerne, danach Sesam & Sonnenblumenkerne.
+    var cur = null;
+    a.bl.forEach(function (b) { if (b.start <= today) cur = b; });
+    var seedEl = document.getElementById("seed");
+    if (!cur || diffDays(cur.start, today) > 50) {
+      seedEl.hidden = true;               // keine (aktuelle) Periode eingetragen
+    } else {
+      var follicular = today <= addDays(cur.start, a.cycle - LUTEAL);
+      document.getElementById("seedText").textContent =
+        follicular ? "Leinsamen & Kürbiskerne" : "Sesam & Sonnenblumenkerne";
+      seedEl.hidden = false;
+    }
     document.getElementById("title").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
     var first = new Date(view.getFullYear(), view.getMonth(), 1);
     var offset = (first.getDay() + 6) % 7;
@@ -208,16 +239,16 @@
     }
     elDays.innerHTML = html;
 
-    var info = [];
-    var basis = a.n === 0 ? "Standardwert (28 Tage)" : a.n + " Zyklus/Zyklen + Standard";
-    info.push(["Erwartete Zykluslänge", a.cycle + " Tage"]);
-    info.push(["Berechnet aus", basis]);
-    if (a.mean) info.push(["Dein Durchschnitt", a.mean.toFixed(1).replace(".", ",") + " Tage"]);
-    info.push(["Periodendauer", a.period + " Tage"]);
-    if (!m.next) info.push(["Vorhersage", "Trag deine letzte Periode ein"]);
-    document.getElementById("info").innerHTML = info.map(function (r) {
-      return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
-    }).join("");
+    var stats = [["Zyklus", a.cycle]];
+    if (a.mean) stats.push(["Ø bisher", a.mean.toFixed(1).replace(".", ",")]);
+    stats.push(["Periode", a.period]);
+    var basis = a.n === 0 ? "Basis: Standardwert (28 Tage)"
+      : "Basis: " + a.n + (a.n === 1 ? " Zyklus" : " Zyklen") + " & Standardwert";
+    if (!m.next) basis = "Trag deine letzte Periode ein";
+    document.getElementById("info").innerHTML =
+      '<div class="figs">' + stats.map(function (r) {
+        return '<div class="fig"><span class="num">' + r[1] + '<small> ' + (r[1] === 1 ? "Tag" : "Tage") + '</small></span><span class="lbl">' + r[0] + "</span></div>";
+      }).join("") + '</div><p class="basis">' + basis + "</p>";
   }
 
   elDays.addEventListener("click", function (e) {

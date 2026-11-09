@@ -1,6 +1,6 @@
-// Service Worker: macht die App offline nutzbar.
+﻿// Service Worker: macht die App offline nutzbar.
 // Bei jeder neuen App-Version die Zahl bei CACHE erhöhen, damit Handys die Änderung laden.
-var CACHE = "zyklustracker-v3";
+var CACHE = "zyklustracker-v14";
 var FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", function (e) {
